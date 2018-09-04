@@ -34,11 +34,18 @@ fs.readFile(global.__base_path + "ui/result.html", function (err, buf)
 module.exports = function (req, res, queryStringObj, done)
 {
     var query = queryStringObj["q"] || "";
+    var options = {};
+    if (queryStringObj["offset"] !== undefined) {
+        options["offset"] = queryStringObj["offset"];
+    }
+    if (queryStringObj["count"] !== undefined) {
+        options["count"] = queryStringObj["count"];
+    }
     if (queryStringObj["t"] === "json")
     {
         res.setHeader("Content-Type", "application/json");
 
-        getJSONResult(query, function (buf)
+        getJSONResult(query, options, function (buf)
         {
             res.end(buf);
         });
@@ -47,21 +54,21 @@ module.exports = function (req, res, queryStringObj, done)
     {
         res.setHeader("Content-Type", "text/html");
 
-        searchPage(query, function (buf)
+        searchPage(query, options, function (buf)
         {
             res.end(buf);
         });
     }
 
 
-    function searchPage(query, callback)
+    function searchPage(query, options, callback)
     {
         var buf = searchHTMLPageTemplate.replace(/<!-- query -->/g, entities.encode(query));
 
         if (query !== "")
         {
             var start = new Date();
-            getResults(query, function (results)
+            getResults(query, options, function (results)
             {
                 // console.log("results: ", results);
 
@@ -77,9 +84,18 @@ module.exports = function (req, res, queryStringObj, done)
     }
 
 
-    function getResults(query, callback)
+    function getResults(query, options, callback)
     {
         var ret = [];
+        var actual_options = {
+            "trim-text": true,
+            "trim-length": 300
+        };
+        for (var opt_name in options) {
+            if (options.hasOwnProperty(opt_name)) {
+                actual_options[opt_name] = options[opt_name];
+            }
+        }
         dbManager.connect(null, function (err)
         {
             if (err)
@@ -95,18 +111,16 @@ module.exports = function (req, res, queryStringObj, done)
                     // Another optimization is to comment the line below and avoid disconnection from Db
                     dbManager.close();
 
-                }, {
-                    "trim-text": true,
-                    "trim-length": 300
-                });
+                },
+                actual_options);
             }
         });
     }
 
 
-    function getJSONResult(query, callback)
+    function getJSONResult(query, options, callback)
     {
-        getResults(query, function (results)
+        getResults(query, options, function (results)
         {
             callback(JSON.stringify({
                 "query": query,
@@ -125,7 +139,7 @@ module.exports = function (req, res, queryStringObj, done)
         }
         else
         {
-            buf += results.length + ' results in ' + (ms / 1000) + ' seconds | <a href="' + req.url + '&t=json" target="_blank">JSON</a></p>';
+            buf += (results[0]["total_count"] || results.length) + ' results in ' + (ms / 1000) + ' seconds | <a href="' + req.url + '&t=json" target="_blank">JSON</a></p>';
             for (var i = 0; i < results.length; i++)
             {
                 buf += resultTemplate.replace(/<!-- page-url -->/g, results[i]["page"])

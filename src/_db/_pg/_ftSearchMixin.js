@@ -16,14 +16,20 @@ module.exports = function (CONF)
             " ts_rank_cd(to_tsvector('english',  hostname || '' || page), to_tsquery('english', $1), 7) + " +
             " ts_rank_cd(to_tsvector('english', title), to_tsquery('english', $1), 7) + " +
             " ts_rank_cd(to_tsvector('english', anchor_text), to_tsquery('english', $1), 7) " +
-            "                   AS relevancy " +
+            "                   AS relevancy, " +
+            " COUNT(id) OVER() AS total_count " +
             " FROM pages " +
             " WHERE " +
             "           to_tsvector('english', text) @@ to_tsquery('english', $1) OR " +
             "           to_tsvector('english', hostname || '' || page) @@ to_tsquery('english', $1) OR " +
             "           to_tsvector('english', title) @@ to_tsquery('english', $1) OR " +
             "           to_tsvector('english', anchor_text) @@ to_tsquery('english', $1) " +
-            " ORDER BY relevancy DESC LIMIT 100;";
+            " ORDER BY relevancy DESC";
+        if (options["offset"]) {
+            unparsedSqlQuery += " OFFSET " + options["offset"];
+        }
+        unparsedSqlQuery += " LIMIT " + (options["count"] || 100);
+        unparsedSqlQuery += ";";
 
         var ftQuery = query.split(/\W+/).filter(function(s){return s}).join(" & ");
         that.query(unparsedSqlQuery, [ftQuery], function (err, res)
@@ -42,7 +48,8 @@ module.exports = function (CONF)
                         "title": rows[i]["title"],
                         // by default trim the text to 300 chars
                         "text": options["trim-text"] === false ? rows[i]["text"] : rows[i]["text"].substring(0, options["trim-length"] !== undefined ? options["trim-length"] : 300),
-                        "relevancy": rows[i]["relevancy"]
+                        "relevancy": rows[i]["relevancy"],
+                        "total_count": rows[i]["total_count"]
                     });
                 }
             }

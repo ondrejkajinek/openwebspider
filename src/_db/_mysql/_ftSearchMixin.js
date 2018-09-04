@@ -18,7 +18,12 @@ module.exports = function (CONF)
             " match(`hostname`) against(?) as relevancy " +
 
             " FROM ??.pages having relevancy > 0 " +
-            " ORDER BY relevancy DESC LIMIT 100;";
+            " ORDER BY relevancy DESC";
+        if (options["offset"]) {
+            unparsedSqlQuery += " OFFSET " + options["offset"];
+        }
+        unparsedSqlQuery += " LIMIT " + (options["count"] || 100);
+        unparsedSqlQuery += ";";
 
 
         var sql = that.format(unparsedSqlQuery, [
