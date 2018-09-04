@@ -1,4 +1,5 @@
 var http = require("http");
+var https = require("https");
 var logger = require("../_utils/logger");
 
 
@@ -32,7 +33,12 @@ module.exports = function ()
                 headers["If-Modified-Since"] = urlObject["lastModified"];
             }
 
-            var req = http.request({
+            var caller_proto = http;
+            if (urlObject["protocol"] == 'https:'){
+                caller_proto = https;
+            }
+
+            var req = caller_proto.request({
                 "hostname": urlObject["hostname"],
                 "port": urlObject["port"],
                 "path": urlObject["path"],
@@ -48,12 +54,15 @@ module.exports = function ()
                     that.addURL(response["headers"]["location"], urlObject);
                 }
 
-                if (response.statusCode !== 200 ||
-                    ( response.headers["content-length"] && parseInt(response.headers["content-length"]) > that.CONF.get("MAX_PAGE_SIZE") * 1000 ))
+                if (
+                        (response.statusCode !== 200 ) ||
+                        (response.headers["content-length"] && parseInt(response.headers["content-length"]) > that.CONF.get("MAX_PAGE_SIZE") * 1000 ) ||
+                        (response.headers["content-type"] && ( ["application/msword"].indexOf(response.headers["content-type"]) ) != -1)
+                    )
                 {
                     req.abort();
                     response.req.end();
-                    callback(null, response);
+                    callback(null, response, undefined, 'status is ' + response.statusCode + ' content len: ' + response.headers["content-length"] + " content_type: " + response.headers["content-type"]);
                     return;
                 }
 
@@ -89,7 +98,7 @@ module.exports = function ()
                         // none is still interested in this page!
                         req.abort();
                         response.req.end();
-                        callback(null, response);
+                        callback(null, response, undefined, "no interested plugin");
                     }
                     else
                     {

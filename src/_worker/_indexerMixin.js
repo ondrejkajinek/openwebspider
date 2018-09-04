@@ -121,11 +121,11 @@ module.exports = function ()
             function (next)
             {
                 var startDownloadTime = new Date();
-                that.getPage(urlObject, interestedPlugins, function (data, responseObject, stillInterestedPlugins)
+                that.getPage(urlObject, interestedPlugins, function (data, responseObject, stillInterestedPlugins, debug)
                 {
                     if (!responseObject)
                     {
-                        msg += "\n\t\t invalid or empty content!";
+                        msg += "\n\t\t invalid or empty content! (1)";
                         return next(true);
                     }
 
@@ -140,6 +140,10 @@ module.exports = function ()
                         msgSize = (Math.floor(downloadedBytes / 1024)) + " kb";
                     }
                     msg += "\n\t\t downloaded " + msgSize + " in " + (new Date() - startDownloadTime) + " ms";
+                    // msg +="\n\ndownloaded\n\n" + data + '\n\n';
+                    if (debug) {
+                        msg +="\n\t\t debug info: " + debug;
+                    }
 
                     if (responseObject.headers["content-type"])
                     {
@@ -149,6 +153,11 @@ module.exports = function ()
                     if (responseObject)
                     {
                         msg += "\n\t\t HTTP Status code: " + responseObject.statusCode + " -- Content-Type: " + urlObject["contentType"];
+
+                        if (((responseObject.statusCode - (responseObject.statusCode % 100))/100)==3)
+                        {
+                            msg += "\n\t\t Redirect to " + responseObject.headers['location'];
+                        }
                     }
 
                     if (stillInterestedPlugins === undefined)
@@ -201,7 +210,7 @@ module.exports = function ()
                     }
                     else
                     {
-                        msg += "\n\t\t invalid or empty content!";
+                        msg += "\n\t\t invalid or empty content! (2)";
                         next(true);
                     }
                 }
@@ -295,7 +304,7 @@ module.exports = function ()
         var resolvedUrl = that.removeBookmark(url.resolve(baseURL ? baseURL : urlObject.href, u));
         var parsedUrl = url.parse(resolvedUrl);
 
-        if (parsedUrl["protocol"] !== "http:")
+        if ((parsedUrl["protocol"] !== "http:") && (parsedUrl["protocol"] !== "https:"))
         {
             return;
         }
