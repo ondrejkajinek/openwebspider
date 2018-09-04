@@ -118,7 +118,7 @@ module.exports = function (openwebspider)
                 {
                     $("script,noscript,style").remove();
 
-                    pageTitle = openwebspider.utils.onlyOneWhitespace($("title").text());
+                    pageTitle = openwebspider.utils.onlyOneWhitespace($("head title").text());
                     pageText = openwebspider.utils.onlyOneWhitespace($("body").text());
                 }
 
