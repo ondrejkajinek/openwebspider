@@ -1,2 +1,3 @@
+conf/ows.conf
 src/plugins/pdf/*.pdf
 node_modules
