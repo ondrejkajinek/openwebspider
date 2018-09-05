@@ -152,7 +152,7 @@ module.exports = function (openwebspider)
                 // index
                 openwebspider.dbManager.indexPage(urlObject["__hostID"],
                     urlObject["host"],
-                    urlObject["path"],
+                    openwebspider.conf.get("STRIP_QUERY_STRING", false) ? urlObject["pathname"] : urlObject["path"],
                     pageTitle,
                     urlObject["__anchorText"],
                     urlObject["__depth"],
